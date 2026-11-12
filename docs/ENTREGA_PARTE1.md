@@ -6,9 +6,14 @@ Implementar una tecnica clasica de IA sobre datos reales de Colombia y compararl
 
 ## 2. Fuente de datos real
 
-- Portal: datos.gov.co
-- Recurso: https://www.datos.gov.co/api/v3/views/kekd-7v7h/query.csv
-- Tema: calidad del aire y meteorologia (AMVA/SIATA)
+- Publicado por: IDEAM (Instituto de Hidrologia, Meteorologia y Estudios Ambientales)
+- Conjunto: "Calidad del Aire en Colombia (Promedio Anual)", id `kekd-7v7h`
+- Portal: Datos Abiertos Colombia (datos.gov.co) - https://www.datos.gov.co/d/kekd-7v7h
+- CSV usado: https://www.datos.gov.co/api/v3/views/kekd-7v7h/query.csv
+- Copia local (plan B): `data/calidad_aire_ideam.csv`; subconjunto del Valle de Aburra
+  (PM2.5, 24 h, 10 municipios) en `data/valle_aburra_pm25.csv`, generado con
+  `python src/preparar_datos.py`.
+- Las estaciones del Valle de Aburra del conjunto son operadas por la autoridad ambiental AMVA.
 
 ## 3. Problema formulado
 

@@ -2,7 +2,9 @@
 
 Implementacion de la **Parte 1 (fundamentos clasicos)** del proyecto final de IA de EAFIT, usando datos reales del recurso publico:
 
-- https://www.datos.gov.co/api/v3/views/kekd-7v7h/query.csv
+- IDEAM, *Calidad del Aire en Colombia (Promedio Anual)*, Datos Abiertos Colombia (datos.gov.co), conjunto `kekd-7v7h`: https://www.datos.gov.co/d/kekd-7v7h
+- CSV: https://www.datos.gov.co/api/v3/views/kekd-7v7h/query.csv
+- Copia local de respaldo en `data/` (ver `src/preparar_datos.py`).
 
 ## Cobertura de la Parte 1
 
