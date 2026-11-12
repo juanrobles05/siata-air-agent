@@ -8,12 +8,10 @@ Implementacion de la **Parte 1 (fundamentos clasicos)** del proyecto final de IA
 
 ## Cobertura de la Parte 1
 
-Esta entrega cumple:
-
 1. Fuente de datos reales identificada y documentada.
 2. Modelo clasico implementado por el equipo (Gaussian Naive Bayes desde cero).
-3. Linea base cuantitativa (clase mayoritaria).
-4. Metricas comparativas (Accuracy, Macro F1, Balanced Accuracy).
+3. Dos lineas base: clase mayoritaria y persistencia.
+4. Evaluacion walk-forward con Accuracy, Macro F1, Balanced Accuracy y matriz de confusion.
 5. Evidencia reproducible en archivo JSON de resultados.
 
 ## Requisitos
@@ -28,23 +26,19 @@ pip install -r requirements.txt
 
 ## Ejecucion
 
-Comando recomendado (genera evidencia de resultados):
-
 ```bash
+python src/preparar_datos.py
 python src/parte1_modelo_clasico.py --output-json resultados/parte1_resultados.json
 ```
 
-Opcionalmente, se puede pasar otra URL CSV:
-
-```bash
-python src/parte1_modelo_clasico.py --url "https://www.datos.gov.co/api/v3/views/kekd-7v7h/query.csv" --output-json resultados/parte1_resultados.json
-```
+`preparar_datos.py` usa `data/calidad_aire_ideam.csv` si existe; con `--descargar` vuelve a bajarlo de datos.gov.co.
 
 ## Entregables incluidos
 
-- `src/parte1_modelo_clasico.py`: pipeline de datos, modelo clasico y evaluacion.
+- `src/preparar_datos.py`: limpia y filtra el Valle de Aburra.
+- `src/parte1_modelo_clasico.py`: modelo clasico, lineas base y evaluacion.
 - `docs/ENTREGA_PARTE1.md`: informe tecnico de la Parte 1.
-- `resultados/parte1_resultados.json`: metricas, features y matrices de confusion.
+- `resultados/parte1_resultados.json`: metricas, ablacion de features y matrices de confusion.
 - `DECLARACION_USO_IA.md`: declaracion de uso de IA generativa.
 - `requirements.txt`: dependencias minimas.
 - `EAFIT_Proyecto_Final_IA.pdf`: enunciado original.

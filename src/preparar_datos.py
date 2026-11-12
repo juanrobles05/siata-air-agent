@@ -81,10 +81,10 @@ def preparar(df: pd.DataFrame) -> pd.DataFrame:
     df = df.dropna(subset=["id_estacion", "anio", "promedio"])
     df["anio"] = df["anio"].astype(int)
 
-    # El CSV trae filas exactamente repetidas; se conserva una por estacion-anio.
+    # El CSV trae filas exactamente repetidas; se conserva una por estacion-año.
     df = df.drop_duplicates(subset=["id_estacion", "anio"], keep="last")
 
-    # Un solo nombre y coordenada por estacion (el del anio mas reciente).
+    # Un solo nombre y coordenada por estacion (el del año mas reciente).
     df = df.sort_values(["id_estacion", "anio"])
     ultimo = df.groupby("id_estacion")[["estacion", "municipio", "latitud", "longitud"]].transform("last")
     df[["estacion", "municipio", "latitud", "longitud"]] = ultimo
@@ -103,7 +103,7 @@ def main() -> None:
 
     print(f"Guardado: {OUT_PATH}")
     print(f"Filas: {len(df)} | Estaciones: {df['id_estacion'].nunique()} | "
-          f"Anios: {df['anio'].min()}-{df['anio'].max()}")
+          f"Años: {df['anio'].min()}-{df['anio'].max()}")
     print(df.groupby("municipio")["id_estacion"].nunique().to_string())
 
 

@@ -1,22 +1,7 @@
-#!/usr/bin/env python3
-"""Parte 1 del proyecto: modelo clasico con datos reales de calidad del aire.
-
-Fuente de datos:
-https://www.datos.gov.co/api/v3/views/kekd-7v7h/query.csv
-
-Este script:
-1) Descarga datos reales desde la API.
-2) Construye un dataset tabular por estacion-anio.
-3) Define la categoria objetivo de PM2.5 del siguiente anio.
-4) Entrena un Gaussian Naive Bayes implementado desde cero.
-5) Compara contra una linea base de clase mayoritaria.
-"""
-
 from __future__ import annotations
 
 import argparse
 import json
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -24,18 +9,44 @@ from typing import Dict, List, Tuple
 import numpy as np
 import pandas as pd
 
-DATA_URL = "https://www.datos.gov.co/api/v3/views/kekd-7v7h/query.csv"
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "data" / "valle_aburra_pm25.csv"
+
+# Conjunto principal: nivel del año (promedio) y episodios extremos (percentil 98).
+FEATURES = ["promedio", "percentil98"]
+
+# Conjuntos usados en la ablacion (se reportan todos, no solo el ganador).
+FEATURES_COMPLETAS = [
+    "promedio", "mediana", "percentil98", "maximo", "minimo", "representatividad", "dias_excedencia",
+]
+ABLACION = {
+    "solo_promedio": ["promedio"],
+    "promedio_percentil98": FEATURES,
+    "promedio_maximo": ["promedio", "maximo"],
+    "promedio_mediana": ["promedio", "mediana"],
+    "todas_las_features": FEATURES_COMPLETAS,
+}
+
+# Categorias sobre el PROMEDIO ANUAL de PM2.5 (ug/m3).
+# Los cortes de 12 y 35.4 de la tabla AQI son para promedios de 24 h y con ellos
+# ~90% de los promedios anuales caen en una sola clase.
+LIMITE_BAJO = 15.0   # meta intermedia 3 de la OMS (guia 2021)
+LIMITE_ALTO = 25.0   # limite anual de la norma colombiana (Res. 2254 de 2017)
+CLASES = ["baja", "media", "alta"]
+
+PRIMER_ANIO_TEST = 2020  # los años de origen >= este valor se evaluan (walk-forward)
 
 
-@dataclass
-class EvaluationResult:
-    accuracy: float
-    macro_f1: float
-    balanced_accuracy: float
+def categoria_pm25(valor: float) -> str:
+    if valor <= LIMITE_BAJO:
+        return "baja"
+    if valor <= LIMITE_ALTO:
+        return "media"
+    return "alta"
 
 
 class GaussianNaiveBayesScratch:
-    """Gaussian Naive Bayes implementado desde cero con NumPy."""
+    """Gaussian Naive Bayes con NumPy."""
 
     def __init__(self, var_smoothing: float = 1e-9) -> None:
         self.var_smoothing = var_smoothing
@@ -49,352 +60,257 @@ class GaussianNaiveBayesScratch:
         self.classes_ = classes
         self.class_priors_ = counts / counts.sum()
 
-        n_classes = len(classes)
-        n_features = x.shape[1]
+        # igual que sklearn: la suavizacion es relativa a la mayor varianza de las features
+        epsilon = self.var_smoothing * x.var(axis=0).max()
 
-        theta = np.zeros((n_classes, n_features), dtype=float)
-        sigma = np.zeros((n_classes, n_features), dtype=float)
-
-        for idx, cls in enumerate(classes):
-            x_c = x[y == cls]
-            theta[idx, :] = x_c.mean(axis=0)
-            sigma[idx, :] = x_c.var(axis=0) + self.var_smoothing
-
-        self.theta_ = theta
-        self.sigma_ = sigma
+        theta = np.zeros((len(classes), x.shape[1]))
+        sigma = np.zeros((len(classes), x.shape[1]))
+        for i, c in enumerate(classes):
+            xc = x[y == c]
+            theta[i] = xc.mean(axis=0)
+            sigma[i] = xc.var(axis=0) + epsilon
+        self.theta_, self.sigma_ = theta, sigma
         return self
 
     def _joint_log_likelihood(self, x: np.ndarray) -> np.ndarray:
-        if any(v is None for v in (self.classes_, self.class_priors_, self.theta_, self.sigma_)):
-            raise RuntimeError("El modelo debe entrenarse con fit() antes de predecir.")
-
-        assert self.class_priors_ is not None
-        assert self.theta_ is not None
-        assert self.sigma_ is not None
-
-        n_samples = x.shape[0]
-        n_classes = self.theta_.shape[0]
-        jll = np.zeros((n_samples, n_classes), dtype=float)
-
-        for idx in range(n_classes):
-            mean = self.theta_[idx]
-            var = self.sigma_[idx]
-            log_prior = math.log(self.class_priors_[idx])
-            # log de la gaussiana por feature y suma sobre features
-            log_prob = -0.5 * np.sum(np.log(2.0 * np.pi * var))
-            log_prob -= 0.5 * np.sum(((x - mean) ** 2) / var, axis=1)
-            jll[:, idx] = log_prior + log_prob
-
+        if self.classes_ is None:
+            raise RuntimeError("Llama a fit() antes de predecir.")
+        jll = np.zeros((x.shape[0], len(self.classes_)))
+        for i in range(len(self.classes_)):
+            var = self.sigma_[i]
+            log_gauss = -0.5 * np.sum(np.log(2.0 * np.pi * var))
+            log_gauss = log_gauss - 0.5 * np.sum(((x - self.theta_[i]) ** 2) / var, axis=1)
+            jll[:, i] = np.log(self.class_priors_[i]) + log_gauss
         return jll
 
-    def predict(self, x: np.ndarray) -> np.ndarray:
-        if self.classes_ is None:
-            raise RuntimeError("El modelo debe entrenarse con fit() antes de predecir.")
+    def predict_proba(self, x: np.ndarray) -> np.ndarray:
         jll = self._joint_log_likelihood(x)
-        class_indexes = np.argmax(jll, axis=1)
-        return self.classes_[class_indexes]
+        jll = jll - jll.max(axis=1, keepdims=True)  # estabilidad numerica
+        p = np.exp(jll)
+        return p / p.sum(axis=1, keepdims=True)
+
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        return self.classes_[np.argmax(self._joint_log_likelihood(x), axis=1)]
 
 
-class MajorityClassBaseline:
-    """Linea base: siempre predice la clase mas frecuente del entrenamiento."""
+# ----------------------------- metricas -----------------------------
 
-    def __init__(self) -> None:
-        self.majority_class_: str | None = None
-
-    def fit(self, y: np.ndarray) -> "MajorityClassBaseline":
-        values, counts = np.unique(y, return_counts=True)
-        self.majority_class_ = str(values[np.argmax(counts)])
-        return self
-
-    def predict(self, n_samples: int) -> np.ndarray:
-        if self.majority_class_ is None:
-            raise RuntimeError("La linea base debe entrenarse antes de predecir.")
-        return np.array([self.majority_class_] * n_samples)
+@dataclass
+class Metricas:
+    accuracy: float
+    macro_f1: float
+    balanced_accuracy: float
 
 
-def normalize_column_name(name: str) -> str:
-    cleaned = name.strip().lower()
-    out = []
-    for ch in cleaned:
-        if ch.isalnum():
-            out.append(ch)
-        else:
-            out.append("_")
-    compact = "".join(out)
-    while "__" in compact:
-        compact = compact.replace("__", "_")
-    return compact.strip("_")
+def _prf(y_true: np.ndarray, y_pred: np.ndarray, label: str) -> Tuple[float, float, float]:
+    tp = np.sum((y_true == label) & (y_pred == label))
+    fp = np.sum((y_true != label) & (y_pred == label))
+    fn = np.sum((y_true == label) & (y_pred != label))
+    prec = tp / (tp + fp) if (tp + fp) else 0.0
+    rec = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = 2 * prec * rec / (prec + rec) if (prec + rec) else 0.0
+    return float(prec), float(rec), float(f1)
 
 
-def find_column(columns: List[str], candidates: List[str], contains: bool = False) -> str:
-    normalized = [normalize_column_name(c) for c in columns]
-    for cand in candidates:
-        cand_norm = normalize_column_name(cand)
-        for i, col in enumerate(normalized):
-            if contains:
-                if cand_norm in col:
-                    return columns[i]
-            else:
-                if cand_norm == col:
-                    return columns[i]
-    raise KeyError(f"No se encontro columna para candidatos: {candidates}")
-
-
-def find_column_by_tokens(columns: List[str], token_groups: List[List[str]]) -> str:
-    normalized = [normalize_column_name(c) for c in columns]
-    for tokens in token_groups:
-        norm_tokens = [normalize_column_name(t) for t in tokens]
-        for i, col in enumerate(normalized):
-            if all(token in col for token in norm_tokens):
-                return columns[i]
-    raise KeyError(f"No se encontro columna por tokens: {token_groups}")
-
-
-def label_pm25_category(value: float) -> str:
-    if value <= 12.0:
-        return "buena"
-    if value <= 35.4:
-        return "moderada"
-    return "danina"
-
-
-def macro_f1(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    labels = np.unique(np.concatenate([y_true, y_pred]))
-    f1_scores = []
-    for label in labels:
-        tp = np.sum((y_true == label) & (y_pred == label))
-        fp = np.sum((y_true != label) & (y_pred == label))
-        fn = np.sum((y_true == label) & (y_pred != label))
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
-        f1_scores.append(f1)
-    return float(np.mean(f1_scores))
-
-
-def balanced_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+def evaluar(y_true: np.ndarray, y_pred: np.ndarray) -> Metricas:
+    # el macro se calcula sobre las clases presentes en y_true
     labels = np.unique(y_true)
-    recalls = []
-    for label in labels:
-        tp = np.sum((y_true == label) & (y_pred == label))
-        fn = np.sum((y_true == label) & (y_pred != label))
-        rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        recalls.append(rec)
-    return float(np.mean(recalls))
-
-
-def evaluate(y_true: np.ndarray, y_pred: np.ndarray) -> EvaluationResult:
-    acc = float(np.mean(y_true == y_pred))
-    return EvaluationResult(
-        accuracy=acc,
-        macro_f1=macro_f1(y_true, y_pred),
-        balanced_accuracy=balanced_accuracy(y_true, y_pred),
+    f1s = [_prf(y_true, y_pred, l)[2] for l in labels]
+    recalls = [_prf(y_true, y_pred, l)[1] for l in labels]
+    return Metricas(
+        accuracy=float(np.mean(y_true == y_pred)),
+        macro_f1=float(np.mean(f1s)),
+        balanced_accuracy=float(np.mean(recalls)),
     )
 
 
-def confusion_matrix_counts(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, Dict[str, int]]:
-    labels = sorted(np.unique(np.concatenate([y_true, y_pred])).tolist())
-    matrix: Dict[str, Dict[str, int]] = {
-        true_label: {pred_label: 0 for pred_label in labels} for true_label in labels
-    }
-    for true_label, pred_label in zip(y_true, y_pred):
-        matrix[str(true_label)][str(pred_label)] += 1
-    return matrix
+def reporte_por_clase(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, Dict[str, float]]:
+    out = {}
+    for l in CLASES:
+        p, r, f = _prf(y_true, y_pred, l)
+        out[l] = {"precision": p, "recall": r, "f1": f, "soporte": int(np.sum(y_true == l))}
+    return out
 
 
-def load_and_prepare(url: str) -> Tuple[pd.DataFrame, int]:
-    raw = pd.read_csv(url, low_memory=False)
+def matriz_confusion(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, Dict[str, int]]:
+    m = {t: {p: 0 for p in CLASES} for t in CLASES}
+    for t, p in zip(y_true, y_pred):
+        m[str(t)][str(p)] += 1
+    return m
 
-    # Mapeo robusto por nombres potencialmente con codificacion irregular.
-    cols = raw.columns.tolist()
-    variable_col = find_column(cols, ["variable"])
-    exposure_col = find_column_by_tokens(cols, [["exposici", "horas"], ["tiempo", "horas"]])
-    year_col = find_column_by_tokens(cols, [["a_o"], ["ano"]])
-    station_col = find_column_by_tokens(cols, [["id", "estacion"]])
-    average_col = find_column(cols, ["promedio"], contains=True)
 
-    # Columnas numericas de apoyo para el modelo (se detectan de forma flexible).
-    numeric_optional: Dict[str, List[List[str]]] = {
-        "mediana": [["mediana"]],
-        "percentil98": [["percentil", "98"]],
-        "maximo": [["m_ximo"], ["maximo"]],
-        "minimo": [["m_nimo"], ["minimo"]],
-        "num_datos": [["no_de_datos"], ["datos"]],
-        "representatividad": [["representatividad"]],
-    }
+# ----------------------------- datos -----------------------------
 
-    selected_cols = {
-        "id_estacion": station_col,
-        "ano": year_col,
-        "variable": variable_col,
-        "exposicion_horas": exposure_col,
-        "promedio": average_col,
-    }
+def cargar_pares(path: Path = DATA_PATH) -> pd.DataFrame:
+    """Una fila por (estacion, año t) con la categoria real de t+1.
 
-    for alias, token_sets in numeric_optional.items():
-        try:
-            selected_cols[alias] = find_column_by_tokens(cols, token_sets)
-        except KeyError:
-            # Si una columna no existe, el pipeline sigue con las disponibles.
-            pass
+    Solo se usan años consecutivos: si a una estacion le falta t+1, no hay par.
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"No existe {path}. Ejecuta: python src/preparar_datos.py")
+    df = pd.read_csv(path).sort_values(["id_estacion", "anio"]).reset_index(drop=True)
+    df["categoria"] = df["promedio"].map(categoria_pm25)
 
-    work = raw[list(selected_cols.values())].copy()
-    work.columns = list(selected_cols.keys())
+    g = df.groupby("id_estacion")
+    df["anio_siguiente"] = g["anio"].shift(-1)
+    df["target"] = g["categoria"].shift(-1)
 
-    for numeric_col in [c for c in work.columns if c not in {"id_estacion", "variable"}]:
-        work[numeric_col] = pd.to_numeric(work[numeric_col], errors="coerce")
+    pares = df[df["anio_siguiente"] == df["anio"] + 1].copy()
+    pares = pares.dropna(subset=FEATURES_COMPLETAS + ["target"])
+    return pares.reset_index(drop=True)
 
-    work["variable"] = (
-        work["variable"].astype(str).str.strip().str.lower().str.replace(" ", "", regex=False)
-    )
 
-    work = work.dropna(subset=["id_estacion", "ano", "variable", "exposicion_horas", "promedio"])
-    work = work[work["exposicion_horas"] == 24]
-    work = work[work["variable"].str.contains("pm2", na=False)]
+# ----------------------------- baselines -----------------------------
 
-    if work.empty:
-        raise ValueError("No hay registros PM2.5 de 24 horas disponibles en la fuente.")
+def baseline_mayoritaria(y_train: np.ndarray, n: int) -> np.ndarray:
+    valores, cuentas = np.unique(y_train, return_counts=True)
+    return np.array([valores[np.argmax(cuentas)]] * n)
 
-    work["target"] = work["promedio"].apply(label_pm25_category)
 
-    feature_cols = [
-        c
-        for c in work.columns
-        if c
-        not in {
-            "id_estacion",
-            "ano",
-            "variable",
-            "exposicion_horas",
-            "promedio",
-            "target",
+def baseline_persistencia(categoria_actual: np.ndarray) -> np.ndarray:
+    """El año siguiente tendra la misma categoria que el actual."""
+    return categoria_actual.copy()
+
+
+# ----------------------------- evaluacion walk-forward -----------------------------
+
+def walk_forward(pares: pd.DataFrame, features: List[str] | None = None) -> Dict[str, object]:
+    """Para cada año de origen Y >= PRIMER_ANIO_TEST: entrena con origenes < Y y predice Y."""
+    features = FEATURES if features is None else features
+    y_true, y_nb, y_may, y_per = [], [], [], []
+    por_anio = {}
+
+    for anio in sorted(pares["anio"].unique()):
+        if anio < PRIMER_ANIO_TEST:
+            continue
+        train = pares[pares["anio"] < anio]
+        test = pares[pares["anio"] == anio]
+        if train.empty or test.empty:
+            continue
+
+        x_tr = train[features].to_numpy(float)
+        y_tr = train["target"].to_numpy(str)
+        x_te = test[features].to_numpy(float)
+        yt = test["target"].to_numpy(str)
+
+        nb = GaussianNaiveBayesScratch().fit(x_tr, y_tr).predict(x_te)
+        may = baseline_mayoritaria(y_tr, len(yt))
+        per = baseline_persistencia(test["categoria"].to_numpy(str))
+
+        y_true.append(yt); y_nb.append(nb); y_may.append(may); y_per.append(per)
+        por_anio[int(anio)] = {
+            "n_train": int(len(train)),
+            "n_test": int(len(test)),
+            "acc_nb": float(np.mean(yt == nb)),
+            "acc_persistencia": float(np.mean(yt == per)),
         }
-        and np.issubdtype(work[c].dtype, np.number)
-    ]
 
-    if not feature_cols:
-        raise ValueError("No se encontraron features numericas para entrenar el modelo.")
-
-    dataset = work[["id_estacion", "ano", "target"] + feature_cols].dropna()
-    return dataset, len(raw)
-
-
-def temporal_split(df: pd.DataFrame, ratio_train: float = 0.8) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    years = sorted(df["ano"].unique().tolist())
-    if len(years) < 2:
-        raise ValueError("No hay suficientes anios para hacer split temporal de entrenamiento/prueba.")
-
-    if len(years) < 4:
-        cutoff_year = years[-2]
-    else:
-        cutoff_idx = max(1, int(len(years) * ratio_train) - 1)
-        cutoff_year = years[cutoff_idx]
-
-    train = df[df["ano"] <= cutoff_year].copy()
-    test = df[df["ano"] > cutoff_year].copy()
-
-    if train.empty or test.empty:
-        raise ValueError("El split temporal produjo conjuntos vacios; revise el dataset.")
-
-    return train, test
-
-
-def run(url: str, output_json: str | None = None) -> Dict[str, object]:
-    dataset, raw_rows = load_and_prepare(url)
-    train, test = temporal_split(dataset)
-
-    feature_cols = [c for c in dataset.columns if c not in {"id_estacion", "ano", "target"}]
-
-    x_train = train[feature_cols].to_numpy(dtype=float)
-    y_train = train["target"].to_numpy(dtype=str)
-
-    x_test = test[feature_cols].to_numpy(dtype=float)
-    y_test = test["target"].to_numpy(dtype=str)
-
-    # Baseline
-    baseline = MajorityClassBaseline().fit(y_train)
-    baseline_pred = baseline.predict(len(y_test))
-    baseline_metrics = evaluate(y_test, baseline_pred)
-
-    # Modelo clasico implementado
-    model = GaussianNaiveBayesScratch().fit(x_train, y_train)
-    model_pred = model.predict(x_test)
-    model_metrics = evaluate(y_test, model_pred)
-
-    baseline_conf = confusion_matrix_counts(y_test, baseline_pred)
-    model_conf = confusion_matrix_counts(y_test, model_pred)
-
-    class_counts = dataset["target"].value_counts().sort_index()
-    class_distribution = {str(k): int(v) for k, v in class_counts.items()}
-
-    print("=== Parte 1: Modelo clasico sobre datos reales ===")
-    print(f"Fuente: {url}")
-    print(f"Filas crudas: {raw_rows:,}")
-    print(f"Muestras finales: {len(dataset):,}")
-    print(f"Train: {len(train):,} | Test: {len(test):,}")
-    print(f"Features numericas: {len(feature_cols)}")
-    print()
-    print("Linea base (clase mayoritaria):")
-    print(f"  Accuracy:           {baseline_metrics.accuracy:.4f}")
-    print(f"  Macro F1:           {baseline_metrics.macro_f1:.4f}")
-    print(f"  Balanced Accuracy:  {baseline_metrics.balanced_accuracy:.4f}")
-    print()
-    print("Gaussian Naive Bayes (from scratch):")
-    print(f"  Accuracy:           {model_metrics.accuracy:.4f}")
-    print(f"  Macro F1:           {model_metrics.macro_f1:.4f}")
-    print(f"  Balanced Accuracy:  {model_metrics.balanced_accuracy:.4f}")
-    print()
-
-    delta_f1 = model_metrics.macro_f1 - baseline_metrics.macro_f1
-    print(f"Mejora en Macro F1 vs baseline: {delta_f1:+.4f}")
-
-    result: Dict[str, object] = {
-        "source_url": url,
-        "rows_raw": int(raw_rows),
-        "rows_final": int(len(dataset)),
-        "train_rows": int(len(train)),
-        "test_rows": int(len(test)),
-        "feature_count": int(len(feature_cols)),
-        "features": feature_cols,
-        "class_distribution": class_distribution,
-        "baseline": {
-            "model": "majority_class",
-            "accuracy": baseline_metrics.accuracy,
-            "macro_f1": baseline_metrics.macro_f1,
-            "balanced_accuracy": baseline_metrics.balanced_accuracy,
-            "confusion_matrix": baseline_conf,
-        },
-        "gaussian_nb_scratch": {
-            "model": "gaussian_nb_scratch",
-            "accuracy": model_metrics.accuracy,
-            "macro_f1": model_metrics.macro_f1,
-            "balanced_accuracy": model_metrics.balanced_accuracy,
-            "confusion_matrix": model_conf,
-        },
-        "improvement_vs_baseline": {
-            "delta_accuracy": model_metrics.accuracy - baseline_metrics.accuracy,
-            "delta_macro_f1": model_metrics.macro_f1 - baseline_metrics.macro_f1,
-            "delta_balanced_accuracy": model_metrics.balanced_accuracy
-            - baseline_metrics.balanced_accuracy,
-        },
+    yt = np.concatenate(y_true)
+    resultados = {}
+    for nombre, pred in [("mayoritaria", np.concatenate(y_may)),
+                         ("persistencia", np.concatenate(y_per)),
+                         ("gaussian_nb_scratch", np.concatenate(y_nb))]:
+        m = evaluar(yt, pred)
+        resultados[nombre] = {
+            "accuracy": m.accuracy,
+            "macro_f1": m.macro_f1,
+            "balanced_accuracy": m.balanced_accuracy,
+            "por_clase": reporte_por_clase(yt, pred),
+            "matriz_confusion": matriz_confusion(yt, pred),
+        }
+    return {
+        "n_test_total": int(len(yt)),
+        "distribucion_test": {c: int(np.sum(yt == c)) for c in CLASES},
+        "por_anio_origen": por_anio,
+        "modelos": resultados,
     }
 
-    if output_json:
-        output_path = Path(output_json)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(result, indent=2, ensure_ascii=True), encoding="utf-8")
-        print(f"Resultados guardados en: {output_path}")
 
-    return result
+# ----------------------------- uso desde el agente -----------------------------
+
+def entrenar_modelo(pares: pd.DataFrame | None = None) -> GaussianNaiveBayesScratch:
+    pares = cargar_pares() if pares is None else pares
+    return GaussianNaiveBayesScratch().fit(pares[FEATURES].to_numpy(float), pares["target"].to_numpy(str))
+
+
+def predecir_siguiente_anio(id_estacion: int, anio: int | None = None) -> Dict[str, object]:
+    """Predice la categoria del año siguiente para una estacion (usa su dato mas reciente)."""
+    df = pd.read_csv(DATA_PATH)
+    est = df[df["id_estacion"] == id_estacion].sort_values("anio")
+    if est.empty:
+        raise ValueError(f"Estacion {id_estacion} no encontrada.")
+    fila = est[est["anio"] == anio] if anio is not None else est.tail(1)
+    if fila.empty:
+        raise ValueError(f"La estacion {id_estacion} no tiene datos del año {anio}.")
+    fila = fila.iloc[0]
+    if fila[FEATURES].isna().any():
+        raise ValueError("Faltan indicadores para esa estacion y año.")
+
+    # solo se entrena con pares cuyo año siguiente ya ocurrio antes del año consultado
+    pares = cargar_pares()
+    pares = pares[pares["anio"] < int(fila["anio"])]
+    if pares["target"].nunique() < 2:
+        raise ValueError("No hay suficientes datos previos para entrenar.")
+    modelo = entrenar_modelo(pares)
+    proba = modelo.predict_proba(fila[FEATURES].to_numpy(float).reshape(1, -1))[0]
+
+    return {
+        "id_estacion": int(id_estacion),
+        "estacion": fila["estacion"],
+        "municipio": fila["municipio"],
+        "anio_base": int(fila["anio"]),
+        "anio_predicho": int(fila["anio"]) + 1,
+        "pm25_promedio_base": float(fila["promedio"]),
+        "categoria_base": categoria_pm25(float(fila["promedio"])),
+        "categoria_predicha": str(modelo.classes_[np.argmax(proba)]),
+        "probabilidades": {str(c): float(p) for c, p in zip(modelo.classes_, proba)},
+        "nota": "Estimacion estadistica con pocos datos anuales; no es un pronostico diario ni consejo medico.",
+    }
+
+
+# ----------------------------- main -----------------------------
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Parte 1: Naive Bayes propio sobre PM2.5 anual")
+    parser.add_argument("--output-json", default=None)
+    args = parser.parse_args()
+
+    pares = cargar_pares()
+    res = walk_forward(pares)
+
+    print("=== Parte 1: categoria de PM2.5 del año siguiente ===")
+    print(f"Pares (estacion, t -> t+1): {len(pares)} | estaciones: {pares['id_estacion'].nunique()}")
+    print(f"Clases (cortes {LIMITE_BAJO} y {LIMITE_ALTO} ug/m3): {pares['target'].value_counts().to_dict()}")
+    print(f"Evaluacion walk-forward desde {PRIMER_ANIO_TEST}: {res['n_test_total']} predicciones")
+    print(f"Distribucion real en test: {res['distribucion_test']}\n")
+    for nombre, m in res["modelos"].items():
+        print(f"{nombre:22s} acc={m['accuracy']:.3f}  macroF1={m['macro_f1']:.3f}  balAcc={m['balanced_accuracy']:.3f}")
+    print("\nMatriz de confusion (filas = real, columnas = predicho), Naive Bayes:")
+    cm = res["modelos"]["gaussian_nb_scratch"]["matriz_confusion"]
+    print(pd.DataFrame(cm).T.to_string())
+
+    ablacion = {}
+    print("\nAblacion de features (Naive Bayes, mismo walk-forward):")
+    for nombre, feats in ABLACION.items():
+        r = walk_forward(pares, feats)["modelos"]["gaussian_nb_scratch"]
+        ablacion[nombre] = {"features": feats, "accuracy": r["accuracy"], "macro_f1": r["macro_f1"]}
+        print(f"  {nombre:22s} acc={r['accuracy']:.3f}  macroF1={r['macro_f1']:.3f}")
+
+    salida = {
+        "fuente": "IDEAM - Calidad del Aire en Colombia (Promedio Anual), datos.gov.co kekd-7v7h",
+        "cortes_ug_m3": {"baja_hasta": LIMITE_BAJO, "media_hasta": LIMITE_ALTO},
+        "features": FEATURES,
+        "n_pares": int(len(pares)),
+        "evaluacion": "walk-forward por año de origen",
+        "resultados": res,
+        "ablacion_features": ablacion,
+    }
+    if args.output_json:
+        out = Path(args.output_json)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(salida, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"\nGuardado en {out}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Parte 1: modelo clasico con datos de datos.gov.co")
-    parser.add_argument("--url", default=DATA_URL, help="URL CSV de la API de datos abiertos")
-    parser.add_argument(
-        "--output-json",
-        default=None,
-        help="Ruta para guardar metricas y matrices de confusion en JSON",
-    )
-    args = parser.parse_args()
-    run(args.url, output_json=args.output_json)
+    main()
