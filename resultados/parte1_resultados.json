@@ -1,0 +1,72 @@
+{
+  "source_url": "https://www.datos.gov.co/api/v3/views/kekd-7v7h/query.csv",
+  "rows_raw": 30665,
+  "rows_final": 2133,
+  "train_rows": 1698,
+  "test_rows": 435,
+  "feature_count": 6,
+  "features": [
+    "mediana",
+    "percentil98",
+    "maximo",
+    "minimo",
+    "num_datos",
+    "representatividad"
+  ],
+  "class_distribution": {
+    "buena": 521,
+    "danina": 35,
+    "moderada": 1577
+  },
+  "baseline": {
+    "model": "majority_class",
+    "accuracy": 0.6045977011494252,
+    "macro_f1": 0.2511938872970391,
+    "balanced_accuracy": 0.3333333333333333,
+    "confusion_matrix": {
+      "buena": {
+        "buena": 0,
+        "danina": 0,
+        "moderada": 171
+      },
+      "danina": {
+        "buena": 0,
+        "danina": 0,
+        "moderada": 1
+      },
+      "moderada": {
+        "buena": 0,
+        "danina": 0,
+        "moderada": 263
+      }
+    }
+  },
+  "gaussian_nb_scratch": {
+    "model": "gaussian_nb_scratch",
+    "accuracy": 0.903448275862069,
+    "macro_f1": 0.602107625891026,
+    "balanced_accuracy": 0.614020264010258,
+    "confusion_matrix": {
+      "buena": {
+        "buena": 170,
+        "danina": 0,
+        "moderada": 1
+      },
+      "danina": {
+        "buena": 0,
+        "danina": 0,
+        "moderada": 1
+      },
+      "moderada": {
+        "buena": 40,
+        "danina": 0,
+        "moderada": 223
+      }
+    }
+  },
+  "improvement_vs_baseline": {
+    "delta_accuracy": 0.29885057471264376,
+    "delta_macro_f1": 0.35091373859398683,
+    "delta_balanced_accuracy": 0.2806869306769247
+  }
+}

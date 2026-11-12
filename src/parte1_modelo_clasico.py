@@ -15,8 +15,10 @@ Este script:
 from __future__ import annotations
 
 import argparse
+import json
 import math
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 import numpy as np
@@ -190,6 +192,16 @@ def evaluate(y_true: np.ndarray, y_pred: np.ndarray) -> EvaluationResult:
     )
 
 
+def confusion_matrix_counts(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, Dict[str, int]]:
+    labels = sorted(np.unique(np.concatenate([y_true, y_pred])).tolist())
+    matrix: Dict[str, Dict[str, int]] = {
+        true_label: {pred_label: 0 for pred_label in labels} for true_label in labels
+    }
+    for true_label, pred_label in zip(y_true, y_pred):
+        matrix[str(true_label)][str(pred_label)] += 1
+    return matrix
+
+
 def load_and_prepare(url: str) -> Tuple[pd.DataFrame, int]:
     raw = pd.read_csv(url, low_memory=False)
 
@@ -287,7 +299,7 @@ def temporal_split(df: pd.DataFrame, ratio_train: float = 0.8) -> Tuple[pd.DataF
     return train, test
 
 
-def run(url: str) -> None:
+def run(url: str, output_json: str | None = None) -> Dict[str, object]:
     dataset, raw_rows = load_and_prepare(url)
     train, test = temporal_split(dataset)
 
@@ -308,6 +320,12 @@ def run(url: str) -> None:
     model = GaussianNaiveBayesScratch().fit(x_train, y_train)
     model_pred = model.predict(x_test)
     model_metrics = evaluate(y_test, model_pred)
+
+    baseline_conf = confusion_matrix_counts(y_test, baseline_pred)
+    model_conf = confusion_matrix_counts(y_test, model_pred)
+
+    class_counts = dataset["target"].value_counts().sort_index()
+    class_distribution = {str(k): int(v) for k, v in class_counts.items()}
 
     print("=== Parte 1: Modelo clasico sobre datos reales ===")
     print(f"Fuente: {url}")
@@ -330,9 +348,53 @@ def run(url: str) -> None:
     delta_f1 = model_metrics.macro_f1 - baseline_metrics.macro_f1
     print(f"Mejora en Macro F1 vs baseline: {delta_f1:+.4f}")
 
+    result: Dict[str, object] = {
+        "source_url": url,
+        "rows_raw": int(raw_rows),
+        "rows_final": int(len(dataset)),
+        "train_rows": int(len(train)),
+        "test_rows": int(len(test)),
+        "feature_count": int(len(feature_cols)),
+        "features": feature_cols,
+        "class_distribution": class_distribution,
+        "baseline": {
+            "model": "majority_class",
+            "accuracy": baseline_metrics.accuracy,
+            "macro_f1": baseline_metrics.macro_f1,
+            "balanced_accuracy": baseline_metrics.balanced_accuracy,
+            "confusion_matrix": baseline_conf,
+        },
+        "gaussian_nb_scratch": {
+            "model": "gaussian_nb_scratch",
+            "accuracy": model_metrics.accuracy,
+            "macro_f1": model_metrics.macro_f1,
+            "balanced_accuracy": model_metrics.balanced_accuracy,
+            "confusion_matrix": model_conf,
+        },
+        "improvement_vs_baseline": {
+            "delta_accuracy": model_metrics.accuracy - baseline_metrics.accuracy,
+            "delta_macro_f1": model_metrics.macro_f1 - baseline_metrics.macro_f1,
+            "delta_balanced_accuracy": model_metrics.balanced_accuracy
+            - baseline_metrics.balanced_accuracy,
+        },
+    }
+
+    if output_json:
+        output_path = Path(output_json)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(result, indent=2, ensure_ascii=True), encoding="utf-8")
+        print(f"Resultados guardados en: {output_path}")
+
+    return result
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parte 1: modelo clasico con datos de datos.gov.co")
     parser.add_argument("--url", default=DATA_URL, help="URL CSV de la API de datos abiertos")
+    parser.add_argument(
+        "--output-json",
+        default=None,
+        help="Ruta para guardar metricas y matrices de confusion en JSON",
+    )
     args = parser.parse_args()
-    run(args.url)
+    run(args.url, output_json=args.output_json)
