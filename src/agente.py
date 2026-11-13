@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -34,7 +35,7 @@ SYSTEM_PROMPT = """Eres un asistente de calidad del aire (PM2.5) para el Valle d
 REGLAS
 1. Para cualquier dato numerico (PM2.5 de una estacion, comparaciones, tendencia, dias de excedencia, prediccion) DEBES llamar a una herramienta. Nunca inventes cifras ni estaciones.
 2. Para normas, limites, guias de la OMS, categorias del AQI, episodios de contaminacion, medidas o recomendaciones de salud, usa search_docs o get_recommendation y apoyate SOLO en lo que devuelvan: no agregues medidas, cifras ni detalles que no aparezcan en los fragmentos; si el documento no da un detalle, di que el documento no lo especifica. Con una busqueda suele bastar: no repitas search_docs con consultas casi iguales.
-3. Cita siempre la fuente. Para datos: "IDEAM, datos.gov.co (kekd-7v7h)". Para documentos: nombre del documento y su URL, tal como los devolvio search_docs.
+3. Cita siempre la fuente al final de la respuesta, en texto plano, con este formato: "Fuente: <nombre del documento> - <URL>" (para datos: "Fuente: IDEAM, datos.gov.co (kekd-7v7h)"). Usa el nombre y la URL tal como los devolvio search_docs. NUNCA uses marcas como 【...】 ni referencias numericas tipo "id" o "cursor".
 4. Si no sabes el nombre exacto de una estacion, usa list_stations. Si una herramienta devuelve un error, lee el mensaje y corrige la llamada (por ejemplo usando el id de la estacion); si no se puede resolver, dilo.
 5. Los datos del proyecto son PROMEDIOS ANUALES. No tienes datos diarios ni en tiempo real: no digas como esta el aire hoy ni pronostiques mañana. predict_next_period estima la categoria anual del año siguiente y es incierta (explica que es una estimacion).
 6. Las categorias anuales baja/media/alta (cortes 15 y 25 ug/m3) son propias del proyecto y no son las categorias del AQI ni los colores del ICA. No afirmes rangos numericos del ICA: no los tienes.
@@ -102,6 +103,12 @@ def _espera_reintento(e: RateLimitError, intento: int) -> float:
     return min(ra + 1.0, ESPERA_MAX)
 
 
+def _limpiar(texto: str) -> str:
+    """Quita marcas de cita propias del modelo (【...】) que no corresponden a ninguna fuente real."""
+    texto = re.sub(r"\s*【[^】]*】", "", texto)
+    return re.sub(r"[ 	]+([.,;:])", r"\1", texto).strip()
+
+
 def _recortar(texto: str) -> str:
     if len(texto) <= MAX_CHARS_OBS:
         return texto
@@ -150,7 +157,7 @@ class Agente:
                 tokens["completion"] += resp.usage.completion_tokens or 0
             msg = resp.choices[0].message
             if not msg.tool_calls:
-                respuesta = (msg.content or "").strip()
+                respuesta = _limpiar(msg.content or "")
                 terminado = True
                 break
 
@@ -186,7 +193,7 @@ class Agente:
                 mensajes.append({"role": "user", "content":
                                  "Ya no puedes llamar mas herramientas. Responde con la informacion obtenida; si falta algo, dilo."})
                 resp = _llamar_llm(self.client, mensajes, con_herramientas=False)
-                respuesta = (resp.choices[0].message.content or "").strip()
+                respuesta = _limpiar(resp.choices[0].message.content or "")
             except Exception:
                 respuesta = "No alcance a completar la consulta en el maximo de pasos permitido."
 
