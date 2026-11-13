@@ -27,8 +27,11 @@ src/rag.py                     recuperador BM25 sobre docs_rag/
 src/tools.py                   las 8 herramientas del agente y sus esquemas
 src/agente.py                  loop agéntico (LLM + tool calling)
 src/app.py                     dashboard Streamlit (mapa, serie de tiempo, predicción, chat)
-resultados/                    métricas de la Parte 1 (JSON)
-docs/ENTREGA_PARTE1.md         informe técnico de la Parte 1
+src/evaluar_agente.py          banco de 10-15 preguntas de prueba para evaluar el agente
+resultados/                    métricas de la Parte 1 y evaluación del agente (JSON)
+docs/INFORME_PROYECTO.md       informe breve del proyecto (problema, datos, Parte 1, agente, RAG, límites)
+docs/ENTREGA_PARTE1.md         informe técnico detallado de la Parte 1
+docs/EVALUACION_AGENTE.md      resultado de las 10-15 preguntas de prueba del agente (generado por evaluar_agente.py)
 DECLARACION_USO_IA.md          declaración de uso de IA generativa
 ```
 
@@ -83,6 +86,16 @@ python src/agente.py --trazas
 ```
 
 Sin pregunta abre un chat interactivo; `--trazas` muestra las herramientas que el agente llama.
+
+**5. Evaluar el agente** (entregable obligatorio: 10-15 preguntas de prueba, indicando si llamó la
+herramienta correcta y si citó la fuente; requiere una clave de Groq configurada en `.env`):
+
+```bash
+python src/evaluar_agente.py
+```
+
+Genera `resultados/evaluacion_agente.json` y `docs/EVALUACION_AGENTE.md` con el detalle de cada
+pregunta, la herramienta esperada vs. la llamada, y si la respuesta citó una fuente.
 
 ## Cómo funciona el agente
 

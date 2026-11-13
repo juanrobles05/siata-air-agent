@@ -1,0 +1,450 @@
+[
+  {
+    "num": 1,
+    "pregunta": "¿Qué estaciones de calidad del aire hay en Itagüí?",
+    "tipo": "consulta_datos",
+    "herramientas_esperadas": [
+      "list_stations"
+    ],
+    "herramientas_llamadas": [
+      "list_stations"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": true,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "En Itagüí hay cinco estaciones de calidad del aire:\n\n1. **CASA JUSTICIA** (id 29493) – datos 2013‑2025  \n2. **I.E. CONCEJO MUNICIPAL** (id 29511) – datos 2012‑2025  \n3. **ITA‑COL. EL ROSARIO** (id 9021) – datos 2012‑2012  \n4. **ITA‑DITAIRES** (id 9002) – datos 2011‑2012  \n5. **ITA‑POGO** (id 99999) – datos 2013‑2019  \n\nFuente: IDEAM, Calidad del Aire en Colombia (Promedio Anual), datos.gov.co – kekd-7v7h",
+    "fuentes": [
+      "IDEAM, datos.gov.co kekd-7v7h"
+    ],
+    "pasos": [
+      {
+        "herramienta": "list_stations",
+        "argumentos": "{\"municipio\":\"Itagüí\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 2,
+    "pregunta": "¿Cuál fue el PM2.5 promedio en Tráfico Centro en 2023?",
+    "tipo": "consulta_datos",
+    "herramientas_esperadas": [
+      "get_pm25"
+    ],
+    "herramientas_llamadas": [
+      "get_pm25"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": true,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "El promedio anual de PM2.5 en la estación **Tráfico Centro** (Medellín) para 2023 fue **23.4 µg/m³**, con categoría anual “media”.  \n\nFuente: IDEAM, datos.gov.co (kekd-7v7h)",
+    "fuentes": [
+      "IDEAM, datos.gov.co kekd-7v7h"
+    ],
+    "pasos": [
+      {
+        "herramienta": "get_pm25",
+        "argumentos": "{\"anio\":2023,\"estacion\":\"Tráfico Centro\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 3,
+    "pregunta": "Dame el historial completo de PM2.5 de la estación I.E. Concejo Municipal.",
+    "tipo": "consulta_datos",
+    "herramientas_esperadas": [
+      "get_pm25"
+    ],
+    "herramientas_llamadas": [
+      "get_pm25"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": true,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "**Historial anual de PM2.5 – Estación I.E. Concejo Municipal (Itagüí)**  \n\n| Año | Promedio (µg/m³) | Categoría anual* |\n|-----|------------------|------------------|\n| 2012 | 25.4 | alta |\n| 2013 | 25.7 | alta |\n| 2014 | 25.1 | alta |\n| 2015 | 24.0 | media |\n| 2016 | 25.8 | alta |\n| 2017 | 22.1 | media |\n| 2018 | 19.4 | media |\n| 2020 | 20.1 | media |\n| 2021 | 16.9 | media |\n| 2022 | 16.2 | media |\n| 2023 | 18.3 | media |\n| 2024 | 16.13 | media |\n| 2025 | 16.64 | media |\n\n\\*Categorías del proyecto: **baja** ≤ 15 µg/m³, **media** ≤ 25 µg/m³, **alta** > 25 µg/m³ (no son las categorías del AQI diario).  \n\nFuente: IDEAM, datos.gov.co - kekd-7v7h",
+    "fuentes": [
+      "IDEAM, datos.gov.co kekd-7v7h"
+    ],
+    "pasos": [
+      {
+        "herramienta": "get_pm25",
+        "argumentos": "{\"estacion\":\"I.E. Concejo Municipal\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 4,
+    "pregunta": "Compara el PM2.5 de Tráfico Centro y Tráfico Sur en 2021.",
+    "tipo": "consulta_datos",
+    "herramientas_esperadas": [
+      "compare_stations"
+    ],
+    "herramientas_llamadas": [
+      "compare_stations"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": true,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "En 2021, la estación **TRÁFICO CENTRO** (Medellín) tuvo un promedio anual de PM2.5 de **25.3 µg/m³** (categoría alta) y la estación **TRÁFICO SUR** (Sabaneta) registró **25.4 µg/m³** (también categoría alta). La diferencia entre ambas es de **0.1 µg/m³**, siendo ligeramente mayor en TRÁFICO SUR.  \n\nFuente: IDEAM, datos.gov.co.",
+    "fuentes": [],
+    "pasos": [
+      {
+        "herramienta": "compare_stations",
+        "argumentos": "{\"anio\":2021,\"estacion_a\":\"Tráfico Centro\",\"estacion_b\":\"Tráfico Sur\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 5,
+    "pregunta": "¿Cuántos días de excedencia tuvo la estación Casa Justicia en 2020?",
+    "tipo": "consulta_datos",
+    "herramientas_esperadas": [
+      "exceedance_days"
+    ],
+    "herramientas_llamadas": [
+      "exceedance_days"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": true,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "La estación Casa Justicia registró **42 días de excedencia** en 2020.  \nFuente: IDEAM, datos.gov.co – kekd-7v7h",
+    "fuentes": [
+      "IDEAM, datos.gov.co kekd-7v7h"
+    ],
+    "pasos": [
+      {
+        "herramienta": "exceedance_days",
+        "argumentos": "{\"anio\":2020,\"estacion\":\"Casa Justicia\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 6,
+    "pregunta": "¿Cuál es la tendencia del PM2.5 en Hospital Manuel Uribe a lo largo de los años?",
+    "tipo": "consulta_datos",
+    "herramientas_esperadas": [
+      "trend"
+    ],
+    "herramientas_llamadas": [
+      "trend"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": true,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "La tendencia del PM2.5 en la estación **Hospital Manuel Uribe (Envigado)** es **baja**. La regresión lineal muestra una pendiente de **‑0.35 µg/m³ por año**, pasando de un promedio anual de **16.6 µg/m³** (primer año con datos) a **13.47 µg/m³** (último año disponible).  \n\nFuente: IDEAM, datos.gov.co (trend)",
+    "fuentes": [],
+    "pasos": [
+      {
+        "herramienta": "trend",
+        "argumentos": "{\"estacion\":\"Hospital Manuel Uribe\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 7,
+    "pregunta": "¿Qué categoría de PM2.5 se espera para Tráfico Centro el próximo año?",
+    "tipo": "prediccion",
+    "herramientas_esperadas": [
+      "predict_next_period"
+    ],
+    "herramientas_llamadas": [
+      "predict_next_period"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": true,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "Se estima que la categoría anual de PM2.5 para la estación **Tráfico Centro** en el próximo año será **media** (promedio estimado ≈ 23.8 µg/m³). Esta es una predicción basada en el modelo Naive Bayes del proyecto y, por tanto, es una estimación y no un pronóstico diario.  \n\nFuente: predict_next_period (modelo Naive Bayes del proyecto).",
+    "fuentes": [],
+    "pasos": [
+      {
+        "herramienta": "predict_next_period",
+        "argumentos": "{\"estacion\":\"Tráfico Centro\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 8,
+    "pregunta": "Tengo asma y el AQI de hoy está dañino para grupos sensibles, ¿qué debo hacer?",
+    "tipo": "recomendacion_salud",
+    "herramientas_esperadas": [
+      "get_recommendation"
+    ],
+    "herramientas_llamadas": [
+      "get_recommendation"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": true,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "Para una condición de AQI “dañino para grupos sensibles” (AQI 101‑150), la EPA recomienda:\n\n- Limitar la duración e intensidad de las actividades al aire libre; hacer pausas frecuentes.  \n- Seguir su plan de acción para el asma y tener a mano la medicación de alivio rápido.  \n- Si aparecen síntomas como falta de aire, palpitaciones o fatiga inusual, contacte a su profesional de salud.\n\n**Fuente:** U.S. EPA / AirNow, *Air Quality Guide for Particle Pollution* (EPA‑452/F‑23‑002, 2023) – https://document.airnow.gov/air-quality-guide-for-particle-pollution.pdf",
+    "fuentes": [
+      "https://document.airnow.gov/air-quality-guide-for-particle-pollution.pdf"
+    ],
+    "pasos": [
+      {
+        "herramienta": "get_recommendation",
+        "argumentos": "{\"nivel\":\"danina para grupos sensibles\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 9,
+    "pregunta": "¿Cuál es el límite anual de PM2.5 en Colombia según la Resolución 2254 de 2017?",
+    "tipo": "rag_normativa",
+    "herramientas_esperadas": [
+      "search_docs"
+    ],
+    "herramientas_llamadas": [
+      "search_docs"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": false,
+    "fuentes_disponibles_no_citadas": true,
+    "terminado": true,
+    "respuesta": "El límite máximo permisible de PM2.5 como promedio anual en Colombia, según la Resolución 2254 de 2017, es **25 µg/m³**.",
+    "fuentes": [
+      "https://www.alcaldiabogota.gov.co/sisjur/normas/Norma1.jsp?i=82634",
+      "https://www.datos.gov.co/d/kekd-7v7h"
+    ],
+    "pasos": [
+      {
+        "herramienta": "search_docs",
+        "argumentos": "{\"k\":3,\"query\":\"Resolución 2254 de 2017 límite anual PM2.5 Colombia\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 10,
+    "pregunta": "¿Qué medidas aplican en el nivel de alerta por contaminación según el protocolo POECA?",
+    "tipo": "rag_protocolo",
+    "herramientas_esperadas": [
+      "search_docs"
+    ],
+    "herramientas_llamadas": [
+      "search_docs"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": true,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "En el nivel de **alerta** el protocolo POECA amplía las restricciones vehiculares:\n\n* **Restricción por placa**: se aplican a los **seis últimos dígitos** de la placa del vehículo particular.  \n* **Horarios**: la restricción es más extensa, por ejemplo de **05:00 a 10:00** y de **16:00 a 20:00**.  \n* **Vías**: **no hay vías exentas**; la medida se extiende a toda la zona del Valle de Aburrá.  \n* **Excepciones**: siguen vigentes los mismos casos de excepción – vehículos de emergencia, exequiales, de orden público, a gas natural o eléctricos, y el transporte público colectivo.\n\nFuente: **Protocolo POECA: declaración de episodios y medidas por nivel (Valle de Aburrá)** – sección “Medidas en nivel de alerta: restricción vehicular (versión 2019)”, https://2024.laestrella.gov.co/uploads/entidad/control/6f9eb-plan-de-accion-poeca.pdf",
+    "fuentes": [
+      "https://2024.laestrella.gov.co/uploads/entidad/control/6f9eb-plan-de-accion-poeca.pdf",
+      "https://www.colmayor.edu.co/wp-content/uploads/2023/09/resolucion-metropolitana-2356-_33fsj.pdf"
+    ],
+    "pasos": [
+      {
+        "herramienta": "search_docs",
+        "argumentos": "{\"k\":5,\"query\":\"POECA nivel de alerta medidas protocolo POECA Valle de Aburrá\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 11,
+    "pregunta": "¿Cuál es la guía anual de calidad del aire de la OMS para PM2.5?",
+    "tipo": "rag_salud",
+    "herramientas_esperadas": [
+      "search_docs"
+    ],
+    "herramientas_llamadas": [
+      "search_docs"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": true,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "La Guía anual de la OMS para PM2.5 (2021) establece un límite de **5 µg/m³** como promedio anual (en la versión 2005 era 10 µg/m³).  \n\nFuente: Guías de calidad del aire de la OMS (2021) – “Valores guía de PM2.5” – https://www.ncbi.nlm.nih.gov/books/NBK574591/table/ch3.tab24/",
+    "fuentes": [
+      "https://www.ncbi.nlm.nih.gov/books/NBK574591/table/ch3.tab24/",
+      "https://www.datos.gov.co/d/kekd-7v7h"
+    ],
+    "pasos": [
+      {
+        "herramienta": "search_docs",
+        "argumentos": "{\"k\":3,\"query\":\"guía anual OMS PM2.5 límite anual\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 12,
+    "pregunta": "¿Cuál es el PM2.5 de la estación Altavista?",
+    "tipo": "manejo_error_ambiguedad",
+    "herramientas_esperadas": [
+      "get_pm25"
+    ],
+    "herramientas_llamadas": [
+      "get_pm25",
+      "list_stations",
+      "get_pm25"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": true,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "El promedio anual de PM2.5 registrado en la estación **ALTAVISTA (Medellín)** para el último año disponible (2025) es **19.27 µg/m³**. Según la clasificación del proyecto, este valor corresponde a una categoría **media** (15 – 25 µg/m³).  \n\nFuente: IDEAM, datos.gov.co (kekd-7v7h)",
+    "fuentes": [
+      "IDEAM, datos.gov.co kekd-7v7h"
+    ],
+    "pasos": [
+      {
+        "herramienta": "get_pm25",
+        "argumentos": "{\"estacion\":\"Altavista\"}",
+        "error": "'Altavista' es ambiguo; usa el id de una de estas: 31371: ALTAVISTA (Medellín); 20383: ALTAVISTA (Medellín)"
+      },
+      {
+        "herramienta": "list_stations",
+        "argumentos": "{\"municipio\":\"Medellín\"}",
+        "error": null
+      },
+      {
+        "herramienta": "get_pm25",
+        "argumentos": "{\"estacion\":\"31371\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": "Hay dos estaciones 'Altavista' en Medellín; se espera que el agente pida aclarar o liste candidatos, sin inventar un valor."
+  },
+  {
+    "num": 13,
+    "pregunta": "¿Cuál es el PM2.5 de la estación Marte 2030?",
+    "tipo": "manejo_error_inexistente",
+    "herramientas_esperadas": [
+      "get_pm25"
+    ],
+    "herramientas_llamadas": [
+      "get_pm25",
+      "list_stations",
+      "list_stations",
+      "list_stations",
+      "list_stations"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": false,
+    "fuentes_disponibles_no_citadas": true,
+    "terminado": false,
+    "respuesta": "No pude contactar al modelo (APIStatusError). Intenta de nuevo en unos segundos.",
+    "fuentes": [
+      "IDEAM, datos.gov.co kekd-7v7h"
+    ],
+    "pasos": [
+      {
+        "herramienta": "get_pm25",
+        "argumentos": "{\"estacion\":\"Marte 2030\"}",
+        "error": "No encontre ninguna estacion que coincida con 'Marte 2030'. Usa list_stations para ver las disponibles."
+      },
+      {
+        "herramienta": "list_stations",
+        "argumentos": "{}",
+        "error": null
+      },
+      {
+        "herramienta": "list_stations",
+        "argumentos": "{\"municipio\":\"Medellín\"}",
+        "error": null
+      },
+      {
+        "herramienta": "list_stations",
+        "argumentos": "{\"municipio\":\"\"}",
+        "error": null
+      },
+      {
+        "herramienta": "list_stations",
+        "argumentos": "{\"municipio\":\"\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": "La estación no existe; se espera que el agente lo informe (posiblemente tras usar list_stations) y no invente datos."
+  },
+  {
+    "num": 14,
+    "pregunta": "Dame el PM2.5 de I.E. Ciro Mendia en 2022 y dime qué debo hacer si la categoría es alta.",
+    "tipo": "encadenamiento_multiherramienta",
+    "herramientas_esperadas": [
+      "get_pm25",
+      "get_recommendation"
+    ],
+    "herramientas_llamadas": [
+      "search_docs",
+      "search_docs",
+      "get_recommendation",
+      "get_pm25"
+    ],
+    "herramienta_correcta": true,
+    "cito_fuente": false,
+    "fuentes_disponibles_no_citadas": true,
+    "terminado": true,
+    "respuesta": "En 2022 la estación **I.E. Ciro Mendia** (Medellín) registró un promedio anual de **PM2.5 = 19.6 µg/m³**, lo que la ubica en la **categoría media** (entre 15 y 25 µg/m³).  \n\n**Si la categoría fuera alta** (promedio > 25 µg/m³), la EPA indica que se deben tomar medidas de protección similares a las de una condición “dañina” del AQI diario:  \n\n- **Grupos sensibles** (personas con enfermedades cardíacas o pulmonares, niños, adultos mayores, embarazadas, trabajadores al aire libre) deben **evitar actividades largas o intensas al aire libre** y, de ser posible, realizarlas en interiores.  \n- **Población general**: reducir el tiempo de exposición al aire libre, hacer pausas frecuentes y, cuando sea posible, permanecer en ambientes cerrados con ventilación adecuada.  \n\nEstas son recomendaciones generales; ante cualquier síntoma o duda, consulte a un profesional de salud.",
+    "fuentes": [
+      "https://www.datos.gov.co/d/kekd-7v7h",
+      "https://www.epa.gov/system/files/documents/2024-02/pm-naaqs-air-quality-index-fact-sheet.pdf",
+      "https://document.airnow.gov/air-quality-guide-for-particle-pollution.pdf",
+      "IDEAM, datos.gov.co kekd-7v7h"
+    ],
+    "pasos": [
+      {
+        "herramienta": "search_docs",
+        "argumentos": "{\"k\":3,\"query\":\"categoría alta PM2.5 proyecto Valle de Aburra recomendaciones salud\"}",
+        "error": null
+      },
+      {
+        "herramienta": "search_docs",
+        "argumentos": "{\"k\":5,\"query\":\"EPA recomendaciones salud PM2.5 alta\"}",
+        "error": null
+      },
+      {
+        "herramienta": "get_recommendation",
+        "argumentos": "{\"nivel\":\"danina\"}",
+        "error": null
+      },
+      {
+        "herramienta": "get_pm25",
+        "argumentos": "{\"anio\":2022,\"estacion\":\"I.E. Ciro Mendia\"}",
+        "error": null
+      }
+    ],
+    "nota_evaluador": ""
+  },
+  {
+    "num": 15,
+    "pregunta": "¿Cuál es la capital de Francia?",
+    "tipo": "fuera_de_dominio",
+    "herramientas_esperadas": [],
+    "herramientas_llamadas": [],
+    "herramienta_correcta": true,
+    "cito_fuente": false,
+    "fuentes_disponibles_no_citadas": false,
+    "terminado": true,
+    "respuesta": "Lo siento, solo puedo ayudar con preguntas relacionadas con la calidad del aire (PM2.5) en el Valle de Aburrá.",
+    "fuentes": [],
+    "pasos": [],
+    "nota_evaluador": "Pregunta ajena al proyecto; se espera que el agente decline sin llamar herramientas."
+  }
+]
