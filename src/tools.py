@@ -96,14 +96,15 @@ def list_stations(municipio: str | None = None) -> Dict[str, Any]:
     g = df.groupby(["id_estacion", "estacion", "municipio", "latitud", "longitud"]).agg(
         anio_min=("anio", "min"), anio_max=("anio", "max"), n_anios=("anio", "count")
     ).reset_index()
-    estaciones = [
-        {
-            "id_estacion": int(r.id_estacion), "estacion": r.estacion, "municipio": r.municipio,
-            "latitud": round(float(r.latitud), 5), "longitud": round(float(r.longitud), 5),
-            "anios": f"{int(r.anio_min)}-{int(r.anio_max)} ({int(r.n_anios)} datos)",
-        }
-        for r in g.sort_values(["municipio", "estacion"]).itertuples()
-    ]
+    # sin filtro de municipio la lista es larga (60 estaciones): se omiten las coordenadas para ahorrar tokens
+    estaciones = []
+    for r in g.sort_values(["municipio", "estacion"]).itertuples():
+        fila = {"id_estacion": int(r.id_estacion), "estacion": r.estacion, "municipio": r.municipio,
+                "anios": f"{int(r.anio_min)}-{int(r.anio_max)}"}
+        if municipio:
+            fila["latitud"] = round(float(r.latitud), 5)
+            fila["longitud"] = round(float(r.longitud), 5)
+        estaciones.append(fila)
     return {"total": len(estaciones), "estaciones": estaciones,
             "fuente": "IDEAM, Calidad del Aire en Colombia (Promedio Anual), datos.gov.co kekd-7v7h"}
 
@@ -224,12 +225,26 @@ _RECOMENDACIONES = {
     "peligrosa": ("Peligrosa (AQI 301-500)",
                   "Todos: evitar la actividad fisica al aire libre. Grupos sensibles: permanecer en interiores con poca actividad."),
 }
+_ALIAS_NIVEL = {
+    "good": "buena", "moderate": "moderada",
+    "unhealthy for sensitive groups": "danina para grupos sensibles",
+    "danina grupos sensibles": "danina para grupos sensibles", "danina a grupos sensibles": "danina para grupos sensibles",
+    "sensibles": "danina para grupos sensibles", "naranja": "danina para grupos sensibles",
+    "very unhealthy": "muy danina", "unhealthy": "danina", "hazardous": "peligrosa", "rojo": "danina",
+    "danino": "danina", "muy danino": "muy danina",
+}
 _GRUPOS_SENSIBLES = ("personas con enfermedad cardiaca o pulmonar (incluidos asma y EPOC), adultos mayores, "
                      "ninos y adolescentes, mujeres embarazadas y trabajadores al aire libre")
 
 
 def get_recommendation(nivel: str, grupo: str | None = None) -> Dict[str, Any]:
-    k = _norm(nivel).replace("_", " ")
+    k = _norm(nivel).replace("_", " ").replace("-", " ")
+    if k not in _RECOMENDACIONES:
+        # tolera variantes ("Dañina para grupos sensibles (101-150)", nombres en ingles, etc.)
+        k = (
+            next((clave for clave in sorted(_RECOMENDACIONES, key=len, reverse=True) if clave in k), None)
+            or next((_ALIAS_NIVEL[a] for a in sorted(_ALIAS_NIVEL, key=len, reverse=True) if a in k), None)
+        )
     if k not in _RECOMENDACIONES:
         raise ToolError("Nivel no valido. Usa uno de: " + ", ".join(_RECOMENDACIONES))
     categoria, texto = _RECOMENDACIONES[k]
@@ -252,10 +267,13 @@ def search_docs(query: str, k: int = 3) -> Dict[str, Any]:
     if not res:
         return {"resultados": [], "nota": "No se encontraron fragmentos relevantes en el corpus."}
     return {"resultados": [
-        {"doc_id": r["doc_id"], "documento": r["titulo"], "seccion": r["seccion"],
-         "fuente": r["fuente"], "url": r["url"], "texto": r["texto"], "puntaje": r["puntaje"]}
+        {"documento": r["titulo"], "seccion": r["seccion"], "url": r["url"], "texto": _recorte(r["texto"])}
         for r in res
     ]}
+
+
+def _recorte(texto: str, limite: int = 800) -> str:
+    return texto if len(texto) <= limite else texto[:limite].rsplit(" ", 1)[0] + " [...]"
 
 
 # ------------------------------------------------------------------ registro para el LLM
@@ -295,7 +313,7 @@ TOOL_SPECS = [
     _spec("trend", "Tendencia del PM2.5 anual de una estacion a lo largo de los años (pendiente en ug/m3 por año).",
           {"estacion": _EST}, ["estacion"]),
     _spec("get_recommendation", "Recomendaciones de salud de la EPA segun el nivel del AQI diario de PM2.5 (buena, moderada, danina para grupos sensibles, danina, muy danina, peligrosa).",
-          {"nivel": {"type": "string", "description": "Nivel del AQI."},
+          {"nivel": {"type": "string", "enum": list(_RECOMENDACIONES), "description": "Nivel del AQI diario."},
            "grupo": {"type": "string", "description": "Grupo de la persona, p. ej. asma, ninos, adultos mayores (opcional)."}}, ["nivel"]),
     _spec("search_docs", "Busca en los documentos de referencia (normativa colombiana Res. 2254/2017, guias de la OMS, AQI y guia de salud de la EPA, episodios del Valle de Aburra). Devuelve fragmentos con su fuente y URL; citalos.",
           {"query": {"type": "string", "description": "Pregunta o palabras clave."},
