@@ -3,6 +3,7 @@
 Proyecto final de SI3003 Inteligencia Artificial (EAFIT, 2026-1). Un agente basado en un LLM que responde preguntas sobre PM2.5 en el Valle de Aburrá. Combina:
 
 - **Parte 1 (IA clásica):** un Gaussian Naive Bayes implementado desde cero que estima la categoría anual de PM2.5 del año siguiente para cada estación.
+- **Dashboard (Streamlit):** visualizaciones, filtros y chat con el agente.
 - **Parte 2 (IA moderna):** un agente con loop agéntico y *tool calling* (Groq, API compatible con OpenAI) que usa 8 herramientas, entre ellas una búsqueda RAG sobre normas y guías de salud.
 
 > Es una herramienta informativa y académica. No es consejo médico, legal ni de seguridad.
@@ -25,6 +26,7 @@ src/parte1_modelo_clasico.py   Naive Bayes propio, líneas base y evaluación
 src/rag.py                     recuperador BM25 sobre docs_rag/
 src/tools.py                   las 8 herramientas del agente y sus esquemas
 src/agente.py                  loop agéntico (LLM + tool calling)
+src/app.py                     dashboard Streamlit (mapa, serie de tiempo, predicción, chat)
 resultados/                    métricas de la Parte 1 (JSON)
 docs/ENTREGA_PARTE1.md         informe técnico de la Parte 1
 DECLARACION_USO_IA.md          declaración de uso de IA generativa
@@ -65,7 +67,15 @@ python src/preparar_datos.py
 python src/parte1_modelo_clasico.py --output-json resultados/parte1_resultados.json
 ```
 
-**3. Hablar con el agente por consola:**
+**3. Abrir el dashboard** (desde la raíz del repo; abre http://localhost:8501):
+
+```bash
+python -m streamlit run src/app.py
+```
+
+El panel permite elegir municipio, estación y año, y ofrece cinco vistas: serie de tiempo (con bandas de categoría, límite colombiano y guía de la OMS), mapa de estaciones coloreado por categoría, mapa de calor estación-año, ranking de estaciones del año y predicción del año siguiente con sus probabilidades. A su lado hay un chat con el agente. Sin clave de Groq el panel funciona igual, solo se desactiva el chat.
+
+**4. Hablar con el agente por consola:**
 
 ```bash
 python src/agente.py "¿Cuál fue el PM2.5 promedio de Tráfico Centro en 2024 y supera el límite colombiano?"

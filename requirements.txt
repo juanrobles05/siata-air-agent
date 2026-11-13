@@ -1,6 +1,6 @@
 numpy>=1.26.0
 pandas>=2.2.0
-streamlit>=1.35.0
+streamlit>=1.50.0
 plotly>=5.22.0
 # Cliente compatible con OpenAI, usado contra el endpoint de Groq (base_url de Groq)
 openai>=1.40.0
