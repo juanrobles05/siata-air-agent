@@ -1,0 +1,18 @@
+# Protocolo POECA: declaración de episodios y medidas por nivel (Valle de Aburrá)
+Fuente: Municipio de La Estrella, "Plan de acción para la implementación del Plan Operacional para Enfrentar Episodios de Calidad del Aire (POECA), alcance 2019", que resume el Acuerdo Metropolitano 04 de 2018. ADVERTENCIA: es la versión de 2019; el Acuerdo Metropolitano 07 de 2022 modificó varios artículos del protocolo (medidas incluidas), así que las medidas vigentes deben confirmarse en la norma actual del Área Metropolitana.
+URL: https://2024.laestrella.gov.co/uploads/entidad/control/6f9eb-plan-de-accion-poeca.pdf
+
+## Niveles de contingencia y umbrales
+El protocolo fija niveles de prevención, alerta y emergencia según la Resolución 2254 de 2017. Para PM2.5 en 24 horas: prevención de 38 a 55 µg/m³, alerta de 56 a 150 µg/m³ y emergencia desde 151 µg/m³. Para PM10 en 24 horas: 155 a 254, 255 a 354 y desde 355 µg/m³. Para ozono en 8 horas: 139 a 167, 168 a 207 y desde 208 µg/m³. El protocolo también cubre SO2, NO2 y CO.
+
+## Cómo se declara un episodio
+Se usan medias móviles de 24 horas de la red de monitoreo, operada por SIATA. Si una estación automática reporta un valor dentro de un rango, se hace seguimiento horario; si pasadas 48 horas los promedios siguen en el mismo rango en más del 75 % del tiempo, se declara el nivel. Para declarar un nivel en un municipio se requiere información de como mínimo el 50 % de sus estaciones de monitoreo. Cuando se prevé un episodio, SIATA elabora el boletín del ICA previsto para el día siguiente y lo envía al Grupo de Gestión de Episodios de Contaminación Atmosférica (GECA); el informe llega al director del Área Metropolitana, quien informa a los 10 alcaldes para la declaratoria oficial de inicio, evolución y finalización del nivel.
+
+## Periodo de gestión de episodios
+En la versión de 2019 el Área Metropolitana declara un "Periodo de Gestión de Episodios" en los dos periodos del año con mayores concentraciones, regularmente febrero a abril y octubre a noviembre. (Una resolución de 2023 habla de febrero a abril y septiembre a noviembre.) Durante el periodo se aplican las medidas del nivel de prevención de forma permanente. Si se alcanza una condición crítica que amerite alerta o emergencia, las medidas se mantienen mínimo 3 días consecutivos contados desde las 00 horas, y luego se vuelve a la condición de prevención. SIATA sugiere cada año el inicio y el fin del periodo con un informe técnico.
+
+## Restricciones vehiculares por nivel (versión 2019)
+Las restricciones apuntan primero al transporte, que es la principal fuente de PM2.5, y en niveles críticos también al sector industrial. Prevención: restricción por los últimos 4 dígitos de la placa para vehículos particulares, de carga y volquetas de lunes a viernes de 07:00 a 08:30 y de 17:30 a 19:00; los sábados, restricción alternada entre pares e impares; domingos y festivos sin restricción; motos con restricción a 2 dígitos. Alerta: restricción ampliada (por 6 dígitos) con horarios más largos, por ejemplo de 05:00 a 10:00 y de 16:00 a 20:00 para particulares, y sin vías exentas. Emergencia: restricción a todos los dígitos de lunes a domingo de 05:00 a 22:00 para particulares, motos y transporte de carga, sin vías exentas. Se exceptúan vehículos de emergencia, exequiales, de orden público, a gas natural o eléctricos, y el transporte público colectivo.
+
+## Efectividad de las medidas
+Según el plan, en octubre de 2018 la concentración de PM2.5 fue menor que en octubre de 2017 en todas las estaciones, y la estación Tráfico Sur pasó de 46,4 a 27,1 µg/m³. El pico y placa ambiental para camiones y volquetas de modelo 2009 o anterior retrasó una hora el pico diario de PM2.5.

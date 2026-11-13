@@ -37,6 +37,9 @@ python src/parte1_modelo_clasico.py --output-json resultados/parte1_resultados.j
 
 - `src/preparar_datos.py`: limpia y filtra el Valle de Aburra.
 - `src/parte1_modelo_clasico.py`: modelo clasico, lineas base y evaluacion.
+- `src/tools.py`: las 8 herramientas del agente y sus esquemas para el LLM.
+- `src/rag.py`: recuperador BM25 sobre `docs_rag/`.
+- `docs_rag/`: corpus de referencia (Res. 2254/2017, OMS, EPA, episodios del Valle de Aburra), cada documento con su fuente y URL.
 - `docs/ENTREGA_PARTE1.md`: informe tecnico de la Parte 1.
 - `resultados/parte1_resultados.json`: metricas, ablacion de features y matrices de confusion.
 - `DECLARACION_USO_IA.md`: declaracion de uso de IA generativa.
